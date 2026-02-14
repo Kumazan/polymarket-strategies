@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Polymarket 交易策略指南</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #1a2332;
+  --bg-light: #1f2b3d;
+  --bg-card: #243044;
+  --fg: #e8e6e3;
+  --muted: #8a9bb5;
+  --faint: #3a4a60;
+  --accent: #d4a853;
+  --accent-soft: rgba(212,168,83,0.15);
+  --danger: #e74c3c;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --info: #3498db;
+  --serif: 'Noto Serif TC', serif;
+  --sans: 'Noto Sans TC', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.8;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* NAV */
+.nav {
+  position: sticky; top:0; z-index:100;
+  background: rgba(26,35,50,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--faint);
+  padding: 0 1.25rem; height:52px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.nav-title { font-family:var(--serif); font-weight:900; font-size:1.05rem; color:var(--accent); }
+.nav-progress { position:absolute; bottom:0; left:0; height:2px; background:var(--accent); width:0%; transition:width .3s; }
+.nav-menu-btn { background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--fg); padding:4px; }
+
+/* TOC */
+.toc-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; opacity:0; pointer-events:none; transition:opacity .3s; }
+.toc-overlay.open { opacity:1; pointer-events:all; }
+.toc-drawer {
+  position:fixed; top:0; right:0; width:min(320px,85vw); height:100%;
+  background:var(--bg-light); z-index:201; transform:translateX(100%); transition:transform .3s;
+  padding:2rem 1.5rem; overflow-y:auto;
+}
+.toc-drawer.open { transform:translateX(0); }
+.toc-drawer h3 { font-family:var(--serif); color:var(--accent); margin-bottom:1rem; font-size:1.1rem; }
+.toc-drawer a {
+  display:block; padding:.6rem 0; color:var(--muted); text-decoration:none;
+  border-bottom:1px solid var(--faint); font-size:.95rem; transition:color .2s;
+}
+.toc-drawer a:hover { color:var(--accent); }
+
+/* MAIN */
+.container { max-width:780px; margin:0 auto; padding:0 1.25rem; }
+
+/* HERO */
+.hero {
+  text-align:center; padding:4rem 1.25rem 3rem;
+  background: linear-gradient(180deg, var(--bg-light) 0%, var(--bg) 100%);
+}
+.hero-img { width:100%; max-width:600px; border-radius:12px; margin-bottom:2rem; box-shadow:0 8px 32px rgba(0,0,0,.4); }
+.hero h1 { font-family:var(--serif); font-size:clamp(1.8rem,5vw,2.8rem); font-weight:900; color:var(--accent); margin-bottom:.5rem; }
+.hero .subtitle { color:var(--muted); font-size:1.1rem; }
+
+/* CHAPTER */
+.chapter {
+  padding:3rem 0; opacity:0; transform:translateY(30px);
+  transition: opacity .6s, transform .6s;
+}
+.chapter.visible { opacity:1; transform:translateY(0); }
+.chapter-label { font-family:var(--mono); font-size:.8rem; color:var(--accent); text-transform:uppercase; letter-spacing:.1em; margin-bottom:.25rem; }
+.chapter h2 { font-family:var(--serif); font-size:1.6rem; font-weight:900; margin-bottom:1rem; color:#fff; }
+.chapter h3 { font-family:var(--serif); font-size:1.2rem; font-weight:700; margin:1.5rem 0 .75rem; color:var(--accent); }
+.chapter p { margin-bottom:1rem; color:var(--fg); }
+.chapter img.chapter-img { width:100%; border-radius:10px; margin:1.5rem 0; box-shadow:0 4px 20px rgba(0,0,0,.3); }
+.chapter ul, .chapter ol { margin:0 0 1rem 1.5rem; }
+.chapter li { margin-bottom:.4rem; }
+.chapter strong { color:#fff; }
+.chapter code { font-family:var(--mono); background:var(--bg-card); padding:.15em .4em; border-radius:4px; font-size:.9em; color:var(--accent); }
+
+/* CALLOUT */
+.callout {
+  background:var(--bg-card); border-left:4px solid var(--accent);
+  padding:1rem 1.25rem; border-radius:0 8px 8px 0; margin:1.5rem 0;
+}
+.callout.danger { border-left-color:var(--danger); }
+.callout.info { border-left-color:var(--info); }
+.callout.success { border-left-color:var(--success); }
+.callout .callout-title { font-weight:700; margin-bottom:.25rem; color:#fff; }
+.callout p:last-child { margin-bottom:0; }
+
+/* RISK CARD */
+.risk-card {
+  background:var(--bg-card); border-radius:10px; padding:1.25rem; margin:1.5rem 0;
+  display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+}
+.risk-stars { font-size:1.3rem; }
+.risk-label {
+  display:inline-block; padding:.2rem .75rem; border-radius:20px; font-size:.8rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:.05em;
+}
+.risk-low { background:rgba(46,204,113,.2); color:#2ecc71; }
+.risk-mid { background:rgba(243,156,18,.2); color:#f39c12; }
+.risk-high { background:rgba(231,76,60,.2); color:#e74c3c; }
+.risk-dead { background:rgba(149,165,166,.2); color:#95a5a6; }
+
+/* FLOW DIAGRAM */
+.flow {
+  display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin:1.5rem 0;
+  justify-content:center;
+}
+.flow-step {
+  background:var(--bg-card); border:1px solid var(--faint); border-radius:8px;
+  padding:.6rem 1rem; font-size:.9rem; text-align:center; min-width:100px;
+}
+.flow-arrow { color:var(--accent); font-size:1.2rem; font-weight:700; }
+
+/* COMPARE CARDS */
+.compare-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin:1.5rem 0; }
+.compare-card {
+  background:var(--bg-card); border-radius:10px; padding:1.25rem;
+  border-top:3px solid var(--accent);
+}
+.compare-card h4 { color:var(--accent); font-size:1rem; margin-bottom:.5rem; }
+
+/* STEP CARDS (roadmap) */
+.step-cards { margin:1.5rem 0; }
+.step-card {
+  background:var(--bg-card); border-radius:10px; padding:1.5rem; margin-bottom:1rem;
+  border-left:4px solid var(--accent); position:relative;
+}
+.step-card .phase-badge {
+  display:inline-block; background:var(--accent); color:var(--bg); padding:.15rem .6rem;
+  border-radius:4px; font-size:.75rem; font-weight:700; margin-bottom:.5rem;
+}
+.step-card h4 { color:#fff; margin-bottom:.5rem; }
+.step-card table { width:100%; border-collapse:collapse; font-size:.85rem; margin-top:.5rem; }
+.step-card td { padding:.3rem .5rem; border-bottom:1px solid var(--faint); }
+.step-card td:first-child { color:var(--accent); white-space:nowrap; }
+
+/* CASE BOX */
+.case-box {
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(212,168,83,.08) 100%);
+  border:1px solid rgba(212,168,83,.3); border-radius:10px; padding:1.25rem; margin:1.5rem 0;
+}
+.case-box .case-title { font-weight:700; color:var(--accent); margin-bottom:.5rem; font-size:1.05rem; }
+.case-box .case-num { font-family:var(--mono); font-size:1.5rem; font-weight:700; color:#fff; }
+
+/* SUMMARY */
+.summary-box {
+  background:var(--accent-soft); border:1px solid rgba(212,168,83,.3);
+  border-radius:10px; padding:1rem 1.25rem; margin:1.5rem 0;
+  font-weight:500; color:var(--accent);
+}
+.summary-box::before { content:'💡 '; }
+
+/* FOOTER */
+.footer { text-align:center; padding:3rem 1rem; color:var(--muted); font-size:.85rem; border-top:1px solid var(--faint); margin-top:2rem; }
+
+/* DIVIDER */
+.divider { border:none; border-top:1px solid var(--faint); margin:2rem 0; }
+
+/* RESPONSIVE */
+@media(max-width:600px) {
+  .flow { flex-direction:column; }
+  .flow-arrow { transform:rotate(90deg); }
+  .risk-card { flex-direction:column; align-items:flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <span class="nav-title">📈 Polymarket 策略指南</span>
+  <button class="nav-menu-btn" onclick="toggleToc()" aria-label="目錄">☰</button>
+  <div class="nav-progress" id="progressBar"></div>
+</nav>
+
+<!-- TOC -->
+<div class="toc-overlay" id="tocOverlay" onclick="toggleToc()"></div>
+<div class="toc-drawer" id="tocDrawer">
+  <h3>📖 目錄</h3>
+  <a href="#ch1" onclick="toggleToc()">Ch.1 什麼是 Polymarket？</a>
+  <a href="#ch2" onclick="toggleToc()">Ch.2 🌡️ 天氣預報套利</a>
+  <a href="#ch3" onclick="toggleToc()">Ch.3 ⚡ 加密延遲套利</a>
+  <a href="#ch4" onclick="toggleToc()">Ch.4 🚫 NO-Maxi 偏誤策略</a>
+  <a href="#ch5" onclick="toggleToc()">Ch.5 🛡️ 低風險領先者策略</a>
+  <a href="#ch6" onclick="toggleToc()">Ch.6 💰 Fee 與做市策略</a>
+  <a href="#ch7" onclick="toggleToc()">Ch.7 🗺️ 實作路線圖</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <img src="images/hero.png" alt="Polymarket 策略指南" class="hero-img">
+  <h1>Polymarket 交易策略指南</h1>
+  <p class="subtitle">從零到一的預測市場套利之路 — 5 大策略 × 真實案例 × 實作路線圖</p>
+</section>
+
+<div class="container">
+
+<!-- CH1: 什麼是 Polymarket -->
+<section class="chapter" id="ch1">
+  <div class="chapter-label">Chapter 1</div>
+  <h2>什麼是 Polymarket？</h2>
+
+  <p>想像一下，如果你可以對「明天紐約會不會超過 30°C？」這個問題下注，而且市場會自動告訴你大家覺得機率多高——這就是 <strong>Polymarket</strong>。</p>
+
+  <p>Polymarket 是一個建在區塊鏈上的<strong>預測市場</strong>（Prediction Market）。它讓你用 USDC 買賣「某件事會不會發生」的合約。每個合約結果是二元的：YES 或 NO，最終結算為 $1 或 $0。</p>
+
+  <h3>怎麼運作？</h3>
+
+  <div class="flow">
+    <div class="flow-step">🎯 一個問題<br><small>「BTC 會破 $100K 嗎？」</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">💰 市場定價<br><small>YES = 72¢ / NO = 28¢</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">⏰ 等待結算<br><small>事件發生或截止</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">✅ 結算<br><small>YES→$1 或 NO→$1</small></div>
+  </div>
+
+  <p>如果你買了 72¢ 的 YES，而 BTC 真的破了 $100K，你就賺了 28¢（38.9% 報酬率）。如果沒破，你虧 72¢。</p>
+
+  <h3>為什麼有套利空間？</h3>
+
+  <div class="callout">
+    <div class="callout-title">🔑 核心洞察</div>
+    <p>Polymarket 的價格由<strong>散戶交易者</strong>決定，他們經常反應慢、情緒化、只看一個數據源。如果你有<strong>更好的資訊、更快的速度、或更理性的判斷</strong>，你就有 edge。</p>
+  </div>
+
+  <p>套利空間的三大來源：</p>
+  <ul>
+    <li><strong>資訊不對稱：</strong>你有更準確的數據（如氣象模型），市場還沒反映</li>
+    <li><strong>速度優勢：</strong>你比別人更快看到價格變動（如延遲套利）</li>
+    <li><strong>認知偏誤：</strong>散戶系統性高估或低估某些結果（如樂觀偏誤）</li>
+  </ul>
+
+  <div class="summary-box">Polymarket 就是一個「用金錢投票真相」的市場，價格偏離真相的時候就是你的機會。</div>
+</section>
+
+<hr class="divider">
+
+<!-- CH2: 天氣預報套利 -->
+<section class="chapter" id="ch2">
+  <div class="chapter-label">Chapter 2</div>
+  <h2>🌡️ 天氣預報套利</h2>
+
+  <img src="images/weather-arb.png" alt="天氣預報套利" class="chapter-img">
+
+  <p>這是目前 Polymarket 上<strong>最穩、最被驗證</strong>的策略。原理超級簡單——氣象模型已經告訴你答案了，但市場還沒更新價格。</p>
+
+  <h3>原理</h3>
+  <p>NOAA、ECMWF 等氣象模型對未來 1-2 天的溫度預測準確率高達 <strong>85-90%</strong>。但 Polymarket 上的天氣合約價格是散戶手動交易的，他們不會每小時刷新氣象數據。這個<strong>30 分鐘到數小時</strong>的延遲就是你的金礦。</p>
+
+  <div class="flow">
+    <div class="flow-step">🌤️ 氣象模型更新<br><small>NOAA 預報 43°F</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">📊 市場還沒反應<br><small>YES 只定價 15%</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">🤖 Bot 買入 YES<br><small>以 15¢ 買入</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">💰 結算賺 85¢<br><small>預報正確 → $1</small></div>
+  </div>
+
+  <h3>真實案例</h3>
+
+  <div class="compare-grid">
+    <div class="case-box">
+      <div class="case-title">🇬🇧 London 天氣 Bot</div>
+      <p>起始資金</p>
+      <div class="case-num">$1,000</div>
+      <p>10 個月後</p>
+      <div class="case-num" style="color:var(--success)">$24,000</div>
+      <p style="color:var(--muted);font-size:.85rem">2400% 報酬率 · Medium 報導</p>
+    </div>
+    <div class="case-box">
+      <div class="case-title">🌍 多城市 Bot</div>
+      <p>覆蓋 NYC / London / Seoul</p>
+      <div class="case-num" style="color:var(--success)">$65,000 利潤</div>
+      <p style="color:var(--muted);font-size:.85rem">~12 個月 · 同一作者</p>
+    </div>
+    <div class="case-box">
+      <div class="case-title">🐣 小資金奇蹟</div>
+      <p>起始資金</p>
+      <div class="case-num">$48</div>
+      <p>數週後</p>
+      <div class="case-num" style="color:var(--success)">$1,000+</div>
+      <p style="color:var(--muted);font-size:.85rem">Twitter 社群報導</p>
+    </div>
+  </div>
+
+  <h3>多模型策略</h3>
+  <p>只看一個氣象模型不夠穩。頂尖玩家會整合多個來源，取<strong>加權共識</strong>：</p>
+  <ul>
+    <li><strong>NOAA GFS</strong> — 美國官方模型（適合美國城市）</li>
+    <li><strong>ECMWF</strong> — 歐洲模型（全球最準之一）</li>
+    <li><strong>Open-Meteo</strong> — 免費 API，整合多種模型</li>
+  </ul>
+  <p>當 2 個以上模型一致時，信心加倍，下注更大。</p>
+
+  <h3>風險提醒</h3>
+  <div class="callout danger">
+    <div class="callout-title">⚠️ 注意這些風險</div>
+    <p><strong>預報翻轉：</strong>極端天氣可能讓預報在最後 12 小時大逆轉。<br>
+    <strong>Bot 競爭加劇：</strong>策略已被公開，預計幾個月內競爭者變多。<br>
+    <strong>London 流動性差：</strong>有時掛單太薄，建不了大倉位。</p>
+  </div>
+
+  <div class="risk-card">
+    <div class="risk-stars">⭐⭐⭐⭐⭐</div>
+    <span class="risk-label risk-low">低風險</span>
+    <span style="color:var(--muted)">ROI 潛力最高 · 已驗證 · 優先級 #1</span>
+  </div>
+
+  <div class="summary-box">天氣套利就是「用氣象模型打資訊差」，簡單粗暴但有效，是新手最好的起點。</div>
+</section>
+
+<hr class="divider">
+
+<!-- CH3: 加密延遲套利 -->
+<section class="chapter" id="ch3">
+  <div class="chapter-label">Chapter 3</div>
+  <h2>⚡ 加密延遲套利</h2>
+
+  <img src="images/crypto-latency.png" alt="加密延遲套利" class="chapter-img">
+
+  <p>這個策略曾經是 Polymarket 上最暴力的印鈔機。一個人用 $313 在 29 天內變成了 $438K。但故事有個轉折……</p>
+
+  <h3>原理</h3>
+  <p>Polymarket 有 15 分鐘的 BTC/ETH 價格預測市場（「BTC 下個 15 分鐘會漲還是跌？」）。這些市場的價格 feed 有 <strong>500ms-2s 延遲</strong>。Bot 監控 Binance/Coinbase 即時價格，現貨已經大幅移動但 Polymarket 賠率還沒更新時——搶先下單。</p>
+
+  <div class="flow">
+    <div class="flow-step">📡 Binance 即時價格<br><small>BTC 跳漲 0.5%</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">⏱️ 延遲窗口<br><small>500ms - 2s</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">🤖 搶先下單<br><small>買 YES「會漲」</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">💰 15min 後結算<br><small>96.3% 勝率</small></div>
+  </div>
+
+  <h3>傳奇案例</h3>
+  <div class="case-box">
+    <div class="case-title">⚡ 0x8dxd 的傳奇</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.5rem">
+      <div><p>起始資金</p><div class="case-num">$313</div></div>
+      <div><p>29 天後</p><div class="case-num" style="color:var(--success)">$438,000</div></div>
+    </div>
+    <p style="margin-top:.75rem;color:var(--muted)">5,637 筆交易 · 96.3% 勝率 · 運行在 $20/月的 VPS 上</p>
+  </div>
+
+  <h3>Fee 變更衝擊 — 故事的轉折</h3>
+  <div class="callout danger">
+    <div class="callout-title">💀 2026.01.19 — 遊戲規則改變</div>
+    <p>Polymarket 正式對 15 分鐘加密市場收取 <strong>taker fee（最高 1.56%）</strong>。Reddit 用戶表示：「fee 變更殺死了曾經印鈔的延遲套利 bot。」利潤被大幅壓縮，黃金時代結束。</p>
+  </div>
+
+  <h3>現在還能做嗎？</h3>
+  <p>理論上可以，但需要：</p>
+  <ul>
+    <li>價格移動要足夠大（edge > fee + buffer ≈ 3%+）</li>
+    <li>超低延遲基礎設施（靠近 Polymarket 伺服器的 VPS）</li>
+    <li>與其他 bot 搶速度的能力</li>
+  </ul>
+  <p>簡單說：<strong>散戶已經很難再複製這個神話了</strong>。</p>
+
+  <div class="risk-card">
+    <div class="risk-stars">⭐</div>
+    <span class="risk-label risk-dead">已過黃金期</span>
+    <span style="color:var(--muted)">ROI 潛力低 · fee 後利潤壓縮 · 建議觀望</span>
+  </div>
+
+  <div class="summary-box">加密延遲套利是速度的遊戲——曾經的印鈔機因 fee 變更而式微，但它的傳奇故事提醒我們：市場效率低下的地方就有機會。</div>
+</section>
+
+<hr class="divider">
+
+<!-- CH4: NO-Maxi -->
+<section class="chapter" id="ch4">
+  <div class="chapter-label">Chapter 4</div>
+  <h2>🚫 NO-Maxi 偏誤策略</h2>
+
+  <img src="images/no-maxi.png" alt="NO-Maxi 策略" class="chapter-img">
+
+  <p>人類天性樂觀，喜歡相信戲劇性的事情會發生。但真相是：<strong>大部分的事情最終都不會發生</strong>。這個策略就是利用這個偏誤賺錢。</p>
+
+  <h3>原理：「Nothing Ever Happens」效應</h3>
+  <p>Reddit 社群的研究發現，<strong>90% 的地緣政治頭條最終都不了了之</strong>。但每次新聞一出來，散戶就瘋狂買 YES，把價格推高 10-20%。專業交易者會在這時候反手買 NO，等市場冷靜後回歸正常。</p>
+
+  <div class="flow">
+    <div class="flow-step">📰 爆炸新聞<br><small>「可能開戰！」</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">😱 散戶恐慌買 YES<br><small>價格暴漲 20%</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">🧊 你冷靜買 NO<br><small>「大概不會啦」</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">😴 什麼都沒發生<br><small>NO 結算 → $1</small></div>
+  </div>
+
+  <h3>三種應用場景</h3>
+  <div class="compare-grid">
+    <div class="compare-card">
+      <h4>🌍 「Fade the Chaos」</h4>
+      <p>地緣政治新聞衝擊時買 NO。戰爭傳聞？恐攻威脅？90% 最後沒事。機構級策略。</p>
+    </div>
+    <div class="compare-card">
+      <h4>🎤 Mention 市場</h4>
+      <p>「Trump 演講會提到 crypto 嗎？」除非講者歷史上超愛提，否則默認買 NO。結構性高估。</p>
+    </div>
+    <div class="compare-card">
+      <h4>🛸 荒謬事件</h4>
+      <p>「Jesus 2026 年降臨？」「外星人現身？」買 NO ≈ 穩定幣收益（年化 3-5%），幾乎無風險。</p>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">💡 @crypto_betty 的實戰</div>
+    <p>Twitter 上的 @crypto_betty 使用 NO-Maxi 策略，報導每天穩定賺 <strong>$200-400</strong>。核心：分散到多個市場，用數量對沖偶爾的黑天鵝虧損。</p>
+  </div>
+
+  <h3>風險提醒</h3>
+  <div class="callout danger">
+    <div class="callout-title">⚠️ 黑天鵝風險</div>
+    <p>偶爾「不可能的事」真的會發生。單筆可能虧損 100%。<strong>關鍵是分散</strong>：同時做 20-30 個市場的 NO，一個爆了，其他 29 個補回來。</p>
+  </div>
+
+  <div class="risk-card">
+    <div class="risk-stars">⭐⭐⭐⭐</div>
+    <span class="risk-label risk-mid">中等風險</span>
+    <span style="color:var(--muted)">ROI 高 · 需要判斷力 · 優先級 #2</span>
+  </div>
+
+  <div class="summary-box">NO-Maxi 策略就是跟人類的樂觀偏誤對賭——大部分事情不會發生，而市場會為「也許會」付出溢價。</div>
+</section>
+
+<hr class="divider">
+
+<!-- CH5: 低風險領先者 -->
+<section class="chapter" id="ch5">
+  <div class="chapter-label">Chapter 5</div>
+  <h2>🛡️ 低風險領先者策略</h2>
+
+  <img src="images/frontrunner.png" alt="低風險領先者策略" class="chapter-img">
+
+  <p>這個策略像是當「保險公司」——大部分時間穩穩賺小錢，偶爾被黑天鵝打一下。適合不喜歡刺激的人。</p>
+
+  <h3>原理</h3>
+  <p>在「誰會贏得選舉？」這種市場中，當某個候選人已經大幅領先（比如 YES 定價 90¢），你買入等它結算為 $1，賺 10¢。聽起來少？但勝率超高啊。</p>
+
+  <h3>數學期望值</h3>
+  <div class="callout">
+    <div class="callout-title">🧮 來算一下</div>
+    <p>買 90¢ 的 YES：</p>
+    <ul>
+      <li>贏：+$0.10（機率 ~95%）</li>
+      <li>輸：-$0.90（機率 ~5%）</li>
+      <li><strong>期望值 = 0.95 × 0.10 − 0.05 × 0.90 = $0.05</strong></li>
+      <li>每投 $0.90 賺 $0.05 = <strong>5.6% ROI</strong></li>
+    </ul>
+    <p>前提是你判斷的「真實機率」確實高於市場價。如果真實機率只有 90%（等於市場價），期望值就是零。</p>
+  </div>
+
+  <h3>適用場景</h3>
+  <ul>
+    <li>✅ 選舉結果已經幾乎確定（如現任無競爭對手）</li>
+    <li>✅ 荒謬市場的 NO（外星人不會出現 → 97¢ NO 幾乎穩賺）</li>
+    <li>✅ 大資金（$10K+）尋找穩定回報</li>
+    <li>❌ 小資金不適合（$100 只賺 $5-10）</li>
+  </ul>
+
+  <div class="risk-card">
+    <div class="risk-stars">⭐⭐</div>
+    <span class="risk-label risk-mid">中等風險</span>
+    <span style="color:var(--muted)">利潤薄 · 適合大資金 · 需要精準判斷</span>
+  </div>
+
+  <div class="summary-box">領先者策略是「賣保險」——穩穩吃 premium，但要小心那隻你沒預見的黑天鵝。</div>
+</section>
+
+<hr class="divider">
+
+<!-- CH6: Fee 與做市 -->
+<section class="chapter" id="ch6">
+  <div class="chapter-label">Chapter 6</div>
+  <h2>💰 Fee 與做市策略</h2>
+
+  <img src="images/market-making.png" alt="做市策略" class="chapter-img">
+
+  <p>2026 年 1 月，Polymarket 正式引入 fee 機制。這改變了遊戲規則——taker（吃單者）要付費，但 maker（掛單者）可以拿回扣。聰明人開始思考：能不能靠做市賺錢？</p>
+
+  <h3>新 Fee 結構</h3>
+  <div class="compare-grid">
+    <div class="compare-card">
+      <h4>⚡ 15min Crypto</h4>
+      <p>Taker fee 最高 <strong>1.56%</strong>（50¢ 時）<br>Maker rebate: <strong>20%</strong><br>價格極端值時 fee → 0</p>
+    </div>
+    <div class="compare-card">
+      <h4>⚽ Sports 市場</h4>
+      <p>Taker fee 最高 <strong>0.44%</strong>（50¢ 時）<br>Maker rebate: <strong>25%</strong><br>NCAAB、Serie A（2/18 起）</p>
+    </div>
+  </div>
+
+  <h3>做市引擎概念</h3>
+  <p>做市商同時掛買單和賣單，賺取中間的<strong>價差（spread）</strong>加上 maker rebate。</p>
+
+  <div class="flow">
+    <div class="flow-step">📥 掛買單<br><small>Bid: 48¢</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">📤 掛賣單<br><small>Ask: 52¢</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">💵 賺 Spread<br><small>4¢ 價差</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">🎁 + Rebate<br><small>USDC 每日結算</small></div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">🧮 Fee 數學範例（15min crypto, 100 shares）</div>
+    <p>50¢ 時 taker fee = $0.78 → Maker rebate = $0.156<br>
+    90¢ 時 taker fee = $0.18 → 邊際效益低<br>
+    <strong>做市的甜蜜點在中間價位（40¢-60¢）</strong></p>
+  </div>
+
+  <h3>風險提醒</h3>
+  <div class="callout danger">
+    <div class="callout-title">⚠️ 做市不簡單</div>
+    <p><strong>庫存風險：</strong>持有的部位可能在結算時歸零。<br>
+    <strong>被狙擊：</strong>知情交易者（如延遲套利 bot）專門針對你的掛單。<br>
+    <strong>資金門檻高：</strong>有效做市至少需要 $1K-5K。<br>
+    <strong>技術複雜：</strong>需要持續掛單、調整 spread、管理庫存。</p>
+  </div>
+
+  <div class="risk-card">
+    <div class="risk-stars">⭐⭐⭐</div>
+    <span class="risk-label risk-high">高複雜度</span>
+    <span style="color:var(--muted)">穩定但需大資金 · 技術門檻高 · 優先級 #3</span>
+  </div>
+
+  <div class="summary-box">做市策略是 Polymarket 的「開店」模式——你提供流動性，賺 spread + rebate。穩定但技術門檻和資金門檻都很高。</div>
+</section>
+
+<hr class="divider">
+
+<!-- CH7: 路線圖 -->
+<section class="chapter" id="ch7">
+  <div class="chapter-label">Chapter 7</div>
+  <h2>🗺️ 實作路線圖</h2>
+
+  <img src="images/roadmap.png" alt="實作路線圖" class="chapter-img">
+
+  <p>說了這麼多策略，那我們到底該怎麼開始？以下是基於我們<strong>目前的狀態</strong>（Paper trading $100 已上線、天氣 Oracle 已運行）的三階段計劃。</p>
+
+  <div class="step-cards">
+
+    <div class="step-card">
+      <div class="phase-badge">PHASE 1 — 立即執行（1-2 週）</div>
+      <h4>🌡️ 全力優化天氣策略</h4>
+      <p>在已經驗證的基礎上加碼，最大化 edge。</p>
+      <table>
+        <tr><td>🔧 天氣多模型升級</td><td>加入 ECMWF + Open-Meteo，2-3 天</td></tr>
+        <tr><td>🇬🇧 London 市場支持</td><td>開闢利潤最高的新市場，1-2 天</td></tr>
+        <tr><td>⏰ 1-2 天窗口優化</td><td>只在高信心時段下注，0.5 天</td></tr>
+        <tr><td>💰 Fee 計算器</td><td>更新跨市場套利的 fee 模型，0.5 天</td></tr>
+      </table>
+    </div>
+
+    <div class="step-card">
+      <div class="phase-badge">PHASE 2 — 驗證階段（第 3-4 週）</div>
+      <h4>🚫 拓展偏誤偵測策略</h4>
+      <p>分散收入來源，驗證新策略的可行性。</p>
+      <table>
+        <tr><td>🔍 偏誤偵測器</td><td>掃描市場、偵測結構性偏誤，3-4 天</td></tr>
+        <tr><td>📝 NO-Maxi Paper Trading</td><td>用模擬資金驗證，1 天</td></tr>
+        <tr><td>📡 即時價格 Feed</td><td>接入 Binance/Coinbase WebSocket，2 天</td></tr>
+        <tr><td>⚡ Crypto Arb 評估</td><td>測試 fee 後是否仍有 edge，1 天</td></tr>
+      </table>
+    </div>
+
+    <div class="step-card">
+      <div class="phase-badge">PHASE 3 — 擴展階段（第 5-8 週）</div>
+      <h4>💰 上線真金 + 進階策略</h4>
+      <p>在驗證完成後逐步投入真金白銀。</p>
+      <table>
+        <tr><td>🌡️ 天氣策略上真金</td><td>前提：Paper trading 勝率 > 70% 持續 2 週</td></tr>
+        <tr><td>🚫 NO-Maxi 上真金</td><td>前提：Paper trading 驗證完成</td></tr>
+        <tr><td>🛡️ 領先者策略</td><td>前提：資金 > $500</td></tr>
+        <tr><td>💰 做市引擎</td><td>前提：資金 > $1K + 做市知識</td></tr>
+      </table>
+    </div>
+
+  </div>
+
+  <h3>策略總覽</h3>
+  <div class="compare-grid">
+    <div class="compare-card" style="border-top-color:var(--success)">
+      <h4>🌡️ 天氣套利</h4>
+      <p>ROI ⭐⭐⭐⭐⭐<br>風險：低<br>開發成本：低<br><strong>推薦 #1</strong></p>
+    </div>
+    <div class="compare-card" style="border-top-color:var(--warning)">
+      <h4>🚫 NO-Maxi</h4>
+      <p>ROI ⭐⭐⭐⭐<br>風險：中<br>開發成本：中<br><strong>推薦 #2</strong></p>
+    </div>
+    <div class="compare-card" style="border-top-color:var(--info)">
+      <h4>💰 做市</h4>
+      <p>ROI ⭐⭐⭐<br>風險：中高<br>開發成本：高<br><strong>推薦 #3</strong></p>
+    </div>
+    <div class="compare-card" style="border-top-color:var(--muted)">
+      <h4>🛡️ 領先者</h4>
+      <p>ROI ⭐⭐<br>風險：中<br>開發成本：低<br><strong>推薦 #4</strong></p>
+    </div>
+    <div class="compare-card" style="border-top-color:var(--danger)">
+      <h4>⚡ Crypto 延遲</h4>
+      <p>ROI ⭐<br>風險：高<br>開發成本：中<br><strong>觀望中</strong></p>
+    </div>
+  </div>
+
+  <div class="summary-box">天氣策略是我們的核心武器——已有基礎設施、已驗證的案例。先把它做到極致，再慢慢拓展版圖。</div>
+</section>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>Polymarket 策略指南 · 基於實戰研究報告 · 2026</p>
+  <p style="margin-top:.5rem">⚠️ 本指南僅供教育用途，不構成投資建議。預測市場交易有風險，請謹慎評估。</p>
+</div>
+
+<script>
+// Progress bar
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+});
+
+// TOC
+function toggleToc() {
+  document.getElementById('tocOverlay').classList.toggle('open');
+  document.getElementById('tocDrawer').classList.toggle('open');
+}
+
+// Chapter fade-in
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.chapter').forEach(ch => obs.observe(ch));
+</script>
+</body>
+</html>
