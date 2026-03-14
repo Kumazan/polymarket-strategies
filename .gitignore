@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if tooling added later)
+node_modules/
+dist/
+.env
+.env.local
+
+# Python (if tooling added later)
+__pycache__/
+*.pyc
+.venv/
