@@ -27,7 +27,7 @@ The repo is a single-page static site (index.html + images). There is currently 
 - `git status` — must show only `.gitignore` as new file
 
 ### Results
-(populated after run)
+✅ All checks passed — .DS_Store matched, git status clean
 
 ## Rollback
 Delete `.gitignore`. No other changes.
