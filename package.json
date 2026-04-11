@@ -1,0 +1,12 @@
+{
+  "name": "polymarket-strategies",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Static HTML guide for Polymarket trading strategies.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

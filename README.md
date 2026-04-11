@@ -16,9 +16,22 @@
 
 ## 技術
 
-- 純靜態 HTML — 無框架、無建置步驟
+- 純靜態 HTML，無框架、無建置步驟
 - 部署於 GitHub Pages
 - 繁體中文
+- 以 Node 內建 test runner 執行 smoke test
+
+## 驗證
+
+```bash
+npm test
+```
+
+目前 smoke test 會檢查：
+
+- 首頁核心 metadata 是否存在
+- 目錄連結是否對應到實際章節
+- 本地圖片資源是否缺檔
 
 ## License
 
